@@ -52,35 +52,48 @@ const Home = () => {
           <h2 className="text-3xl font-bold mb-10">Powerful Creative Tools</h2>
 
           <div className="grid md:grid-cols-2 gap-8">
-            <div className="bg-gradient-to-br from-gray-900 to-black p-6 rounded-2xl border border-gray-800">
-              <h3 className="text-xl font-semibold mb-3">Text-to-Image</h3>
-              <p className="text-gray-400 mb-4">
+            {/* Text-to-Image Card with Hover Effects */}
+            <div className="bg-gradient-to-br from-gray-900 to-black p-6 rounded-2xl border border-gray-800 
+                          transform transition-all duration-300 ease-out
+                          hover:scale-[1.03] hover:border-purple-500/50 
+                          hover:shadow-[0_0_30px_rgba(168,85,247,0.3)]
+                          cursor-pointer group">
+              <h3 className="text-xl font-semibold mb-3 group-hover:text-purple-400 transition-colors duration-300">Text-to-Image</h3>
+              <p className="text-gray-400 mb-4 group-hover:text-gray-300 transition-colors duration-300">
                 Turn any thought into a high-resolution masterpiece instantly.
               </p>
-              <div className="h-48 rounded-xl overflow-hidden"> <img src="/assets/text-to-image-preview.jpg" alt="AI Generated Lion Cub" className="w-full h-full object-cover" /> </div>
-              <Link to="/text-to-image" className="mt-4 text-purple-400 cursor-pointer inline-block hover:text-purple-300 transition-colors">
+              <div className="h-48 rounded-xl overflow-hidden transform transition-transform duration-300 group-hover:scale-[1.02]">
+                <img src="/assets/text-to-image-preview.jpg" alt="AI Generated Lion Cub" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+              </div>
+              <Link to="/text-to-image" className="mt-4 text-purple-400 cursor-pointer inline-block hover:text-purple-300 transition-colors group-hover:translate-x-1 transform transition-transform duration-300">
                 Learn More →
               </Link>
             </div>
 
-            <div className="bg-gradient-to-br from-gray-900 to-black p-6 rounded-2xl border border-gray-800">
-              <h3 className="text-xl font-semibold mb-3">Text-to-Video</h3>
-              <p className="text-gray-400 mb-4">
+            {/* Text-to-Video Card with Hover Effects */}
+            <div className="bg-gradient-to-br from-gray-900 to-black p-6 rounded-2xl border border-gray-800 
+                          transform transition-all duration-300 ease-out
+                          hover:scale-[1.03] hover:border-blue-500/50 
+                          hover:shadow-[0_0_30px_rgba(59,130,246,0.3)]
+                          cursor-pointer group">
+              <h3 className="text-xl font-semibold mb-3 group-hover:text-blue-400 transition-colors duration-300">Text-to-Video</h3>
+              <p className="text-gray-400 mb-4 group-hover:text-gray-300 transition-colors duration-300">
                 Generate cinematic video clips with realistic motion.
               </p>
-              <div className="h-48 rounded-xl overflow-hidden bg-gray-800 relative">
+              <div className="h-48 rounded-xl overflow-hidden bg-gray-800 relative transform transition-transform duration-300 group-hover:scale-[1.02]">
                 <img
                   src="/assets/text-to-video-Preview.jpg"
                   alt="AI Generated Video Preview"
-                  className="w-full h-full object-cover opacity-80"
+                  className="w-full h-full object-cover opacity-80 transition-all duration-500 group-hover:scale-110 group-hover:opacity-100"
                 />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center 
+                                transform transition-all duration-300 group-hover:scale-125 group-hover:bg-white/30">
                     <span className="text-white text-xl ml-1">▶</span>
                   </div>
                 </div>
               </div>
-              <Link to="/text-to-video" className="mt-4 text-blue-400 cursor-pointer inline-block hover:text-blue-300 transition-colors">
+              <Link to="/text-to-video" className="mt-4 text-blue-400 cursor-pointer inline-block hover:text-blue-300 transition-colors group-hover:translate-x-1 transform transition-transform duration-300">
                 Try Preview →
               </Link>
             </div>
