@@ -57,10 +57,10 @@ const Home = () => {
               <p className="text-gray-400 mb-4">
                 Turn any thought into a high-resolution masterpiece instantly.
               </p>
-              <div className="h-48 rounded-xl bg-gray-800"></div>
-              <p className="mt-4 text-purple-400 cursor-pointer">
+              <div className="h-48 rounded-xl overflow-hidden"> <img src="/assets/text-to-image-preview.jpg" alt="AI Generated Lion Cub" className="w-full h-full object-cover" /> </div>
+              <Link to="/text-to-image" className="mt-4 text-purple-400 cursor-pointer inline-block hover:text-purple-300 transition-colors">
                 Learn More →
-              </p>
+              </Link>
             </div>
 
             <div className="bg-gradient-to-br from-gray-900 to-black p-6 rounded-2xl border border-gray-800">
@@ -68,12 +68,21 @@ const Home = () => {
               <p className="text-gray-400 mb-4">
                 Generate cinematic video clips with realistic motion.
               </p>
-              <div className="h-48 rounded-xl bg-gray-800 flex items-center justify-center">
-                ▶
+              <div className="h-48 rounded-xl overflow-hidden bg-gray-800 relative">
+                <img
+                  src="/assets/text-to-video-Preview.jpg"
+                  alt="AI Generated Video Preview"
+                  className="w-full h-full object-cover opacity-80"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center">
+                    <span className="text-white text-xl ml-1">▶</span>
+                  </div>
+                </div>
               </div>
-              <p className="mt-4 text-blue-400 cursor-pointer">
+              <Link to="/text-to-video" className="mt-4 text-blue-400 cursor-pointer inline-block hover:text-blue-300 transition-colors">
                 Try Preview →
-              </p>
+              </Link>
             </div>
           </div>
         </section>

@@ -61,7 +61,7 @@ const waitForGeneration = async (generationId) => {
 // Generate Image using Leonardo.ai
 exports.generateImage = async (req, res) => {
     try {
-        const { prompt } = req.body;
+        const { prompt, style, aspect_ratio } = req.body;
         const userId = req.userId;
 
         if (!prompt) {
@@ -88,6 +88,27 @@ exports.generateImage = async (req, res) => {
             });
         }
 
+        // Style prefixes for the prompt
+        const stylePrompts = {
+            realistic: "photorealistic, highly detailed, professional photography, 8k resolution,",
+            anime: "anime style, vibrant colors, japanese animation, detailed anime artwork,",
+            cyberpunk: "cyberpunk style, neon lights, futuristic, sci-fi, dystopian city,",
+        };
+
+        // Aspect ratio to dimensions mapping
+        const aspectRatioDimensions = {
+            "1:1": { width: 1024, height: 1024 },
+            "16:9": { width: 1360, height: 768 },
+            "9:16": { width: 768, height: 1360 },
+        };
+
+        // Get style prefix and dimensions
+        const stylePrefix = stylePrompts[style] || stylePrompts.realistic;
+        const dimensions = aspectRatioDimensions[aspect_ratio] || aspectRatioDimensions["1:1"];
+
+        // Combine style with user prompt
+        const enhancedPrompt = `${stylePrefix} ${prompt}`;
+
         // Create pending generation record
         const generation = await Generation.create({
             userId,
@@ -98,16 +119,17 @@ exports.generateImage = async (req, res) => {
         });
 
         try {
-            console.log(`Generating image for prompt: "${prompt}"`);
+            console.log(`Generating image with style "${style}", aspect ratio "${aspect_ratio}"`);
+            console.log(`Enhanced prompt: "${enhancedPrompt}"`);
 
             // Step 1: Start image generation
             const createResponse = await axios.post(
                 `${LEONARDO_BASE_URL}/generations`,
                 {
-                    prompt: prompt,
+                    prompt: enhancedPrompt,
                     modelId: "6b645e3a-d64f-4341-a6d8-7a3690fbf042", // Leonardo Creative model
-                    width: 1024,
-                    height: 1024,
+                    width: dimensions.width,
+                    height: dimensions.height,
                     num_images: 1,
                 },
                 {

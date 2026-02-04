@@ -18,6 +18,8 @@ import Gallery from "./pages/Gallery";
 import Pricing from "./pages/Pricing";
 import Payment from "./pages/Payment";
 import Profile from "./pages/Profile"; // ✅ NEW
+import TextToImageLearnMore from "./pages/TextToImageLearnMore";
+import TextToVideoLearnMore from "./pages/TextToVideoLearnMore";
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
@@ -33,6 +35,8 @@ const AppRoutes = () => {
         {/* PUBLIC */}
         <Route path="/" element={<Home />} />
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/text-to-image" element={<TextToImageLearnMore />} />
+        <Route path="/text-to-video" element={<TextToVideoLearnMore />} />
 
         {/* AUTH */}
         <Route
