@@ -51,8 +51,8 @@ const Navbar = () => {
                 to={path}
                 onClick={() => setShowUserMenu(false)}
                 className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${isActive(path)
-                    ? "bg-[#A855F7]/20 text-[#A855F7]"
-                    : "text-[#9CA3AF] hover:text-white hover:bg-[#111827]"
+                  ? "bg-[#A855F7]/20 text-[#A855F7]"
+                  : "text-[#9CA3AF] hover:text-white hover:bg-[#111827]"
                   }`}
               >
                 <Icon className="w-4 h-4" />
@@ -125,7 +125,7 @@ const Navbar = () => {
             </>
           ) : (
             <div className="flex items-center space-x-3">
-              <Link to="/login" className="text-[#9CA3AF] hover:text-white">
+              <Link to="/login" className="px-6 py-2 bg-gradient-to-r from-[#A855F7] to-[#3B82F6] text-white rounded-lg hover:opacity-90">
                 Login
               </Link>
               <Link
