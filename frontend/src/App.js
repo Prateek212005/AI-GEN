@@ -1,5 +1,5 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { Toaster } from "sonner";
 
@@ -20,16 +20,20 @@ import Payment from "./pages/Payment";
 import Profile from "./pages/Profile"; // ✅ NEW
 import TextToImageLearnMore from "./pages/TextToImageLearnMore";
 import TextToVideoLearnMore from "./pages/TextToVideoLearnMore";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const AppRoutes = () => {
   const { user, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) return <Loading />;
+
+  const isAdminRoute = location.pathname.startsWith("/admin");
 
   return (
     <>
       {/* GLOBAL NAVBAR */}
-      <Navbar />
+      {!isAdminRoute && <Navbar />}
 
       <Routes>
         {/* PUBLIC */}
@@ -86,6 +90,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminDashboard />
             </ProtectedRoute>
           }
         />

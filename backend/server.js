@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dotenv").config({ override: true });
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
@@ -17,12 +17,21 @@ app.use("/uploads", express.static("uploads"));
 
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/generate", require("./routes/generateRoutes"));
+app.use("/api/admin", require("./routes/adminRoutes"));
 
 app.get("/", (req, res) => {
   res.send("AI-GEN Backend Running 🚀");
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🔥 Server running on port ${PORT}`);
+});
+
+server.on('error', (e) => {
+  if (e.code === 'EADDRINUSE') {
+    console.error(`❌ PORT ${PORT} IS ALREADY IN USE!`);
+    console.error('Please close all other backend terminals running "npm start" and try again.');
+    process.exit(1);
+  }
 });

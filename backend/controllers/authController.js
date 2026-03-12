@@ -38,6 +38,7 @@ exports.signup = async (req, res) => {
         email: user.email,
         credits: user.credits,
         subscription_plan: user.subscription_plan,
+        role: user.role,
       },
     });
   } catch (err) {
@@ -70,6 +71,7 @@ exports.login = async (req, res) => {
         email: user.email,
         credits: user.credits,
         subscription_plan: user.subscription_plan,
+        role: user.role,
       },
     });
   } catch (err) {

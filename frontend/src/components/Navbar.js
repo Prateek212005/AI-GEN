@@ -11,6 +11,7 @@ import {
   User,
   Menu,
   X,
+  ShieldAlert,
 } from "lucide-react";
 
 const Navbar = () => {
@@ -123,6 +124,17 @@ const Navbar = () => {
                       <span>Profile</span>
                     </Link>
 
+                    {user?.role === "admin" && (
+                      <Link
+                        to="/admin"
+                        onClick={() => setShowUserMenu(false)}
+                        className="flex items-center space-x-2 px-4 py-3 text-white hover:bg-[#1F2937]"
+                      >
+                        <ShieldAlert className="w-4 h-4" />
+                        <span>Admin</span>
+                      </Link>
+                    )}
+
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center space-x-2 px-4 py-3 text-[#EF4444] hover:bg-[#1F2937]"
@@ -228,6 +240,18 @@ const Navbar = () => {
                   <User className="w-5 h-5" />
                   <span>Profile</span>
                 </Link>
+
+                {user?.role === "admin" && (
+                  <Link
+                    to="/admin"
+                    onClick={closeMobileMenu}
+                    className="flex items-center space-x-3 px-4 py-3 text-white hover:bg-[#111827]"
+                  >
+                    <ShieldAlert className="w-5 h-5" />
+                    <span>Admin</span>
+                  </Link>
+                )}
+
                 <button
                   onClick={handleLogout}
                   className="w-full flex items-center space-x-3 px-4 py-3 text-[#EF4444] hover:bg-[#111827]"
