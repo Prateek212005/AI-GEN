@@ -34,18 +34,22 @@ const Login = () => {
       {/* LEFT SECTION */}
       <div className="hidden md:flex flex-col justify-between p-12 bg-gradient-to-br from-purple-900 via-indigo-800 to-purple-700">
         <div className="flex items-center gap-2">
-          <span className="text-2xl font-bold">AIGen</span>
+          <span className="text-2xl font-bold"></span>
         </div>
 
-        <div className="bg-black/40 rounded-3xl p-8 max-w-md shadow-xl">
+        <div className="bg-black/40 rounded-3xl p-8 max-w-md shadow-xl ml-20 mt-20">
           <h2 className="text-3xl font-bold mb-4">
             The Future of Creation is Here
           </h2>
-          <p className="text-gray-300 mb-6">
+          <p className="text-gray-300 mb-6 font-semibold">
             Harness the power of generative intelligence to bring your wildest
             visions to life.
           </p>
-          <div className="h-32 rounded-xl bg-gradient-to-r from-blue-500/30 to-purple-500/30"></div>
+          <img
+            src="/assets/text-to-image-preview.jpg"
+            alt="AI Preview"
+            className="w-full h-40 object-cover rounded-xl"
+          />
         </div>
 
         <p className="text-sm text-gray-300">👥 Join 10k+ creators today</p>
