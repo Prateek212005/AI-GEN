@@ -447,7 +447,7 @@ const AdminDashboard = () => {
               <tbody>
                 {recentUsers && recentUsers.length > 0 ? (
                   recentUsers.slice(0, 6).map((u) => (
-                    <tr key={u._id}>
+                    <tr key={u.id}>
                       <td>
                         <div className="user-cell">
                           <div className="user-table-avatar">
@@ -469,7 +469,7 @@ const AdminDashboard = () => {
                         </span>
                       </td>
                       <td style={{ color: "var(--text-secondary)" }}>
-                        {timeAgo(u.createdAt)}
+                        {timeAgo(u.created_at)}
                       </td>
                     </tr>
                   ))
@@ -495,7 +495,7 @@ const AdminDashboard = () => {
             <div className="feed-grid">
               {recentGenerations && recentGenerations.length > 0 ? (
                 recentGenerations.slice(0, 6).map((gen) => (
-                  <div className="feed-item" key={gen._id}>
+                  <div className="feed-item" key={gen.id}>
                     {gen.fileUrl ? (
                       <img
                         src={

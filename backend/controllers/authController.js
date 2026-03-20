@@ -4,7 +4,7 @@ const jwt = require("jsonwebtoken");
 
 const createToken = (user) => {
   return jwt.sign(
-    { id: user._id },
+    { id: user.id },
     process.env.JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -33,7 +33,7 @@ exports.signup = async (req, res) => {
     res.status(201).json({
       access_token: token,
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         credits: user.credits,
@@ -42,6 +42,7 @@ exports.signup = async (req, res) => {
       },
     });
   } catch (err) {
+    console.error("Signup error:", err.message);
     res.status(500).json({ message: "Signup failed" });
   }
 };
@@ -66,7 +67,7 @@ exports.login = async (req, res) => {
     res.json({
       access_token: token,
       user: {
-        id: user._id,
+        id: user.id,
         name: user.name,
         email: user.email,
         credits: user.credits,
@@ -75,6 +76,7 @@ exports.login = async (req, res) => {
       },
     });
   } catch (err) {
+    console.error("Login error:", err.message);
     res.status(500).json({ message: "Login failed" });
   }
 };

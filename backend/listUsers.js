@@ -1,14 +1,18 @@
-const mongoose = require("mongoose");
 require("dotenv").config();
-const User = require("./models/User");
+const { supabase } = require("./config/db");
 
-mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(async () => {
-    const users = await User.find({});
-    console.log("Users:", users.map(u => ({ email: u.email, role: u.role })));
+(async () => {
+  try {
+    const { data: users, error } = await supabase
+      .from("users")
+      .select("email, role");
+
+    if (error) throw error;
+
+    console.log("Users:", users);
     process.exit(0);
-  })
-  .catch(err => {
+  } catch (err) {
     console.error(err);
     process.exit(1);
-  });
+  }
+})();

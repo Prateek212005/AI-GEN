@@ -5,11 +5,11 @@ const Generation = require("../models/Generation");
 exports.getDashboardStats = async (req, res) => {
   try {
     /* ─── Aggregate Counts ─── */
-    const totalUsers = await User.countDocuments();
-    const totalGenerations = await Generation.countDocuments();
+    const totalUsers = await User.countAll();
+    const totalGenerations = await Generation.countAll();
 
     // Active subscriptions = users NOT on free plan
-    const activeSubscriptions = await User.countDocuments({
+    const activeSubscriptions = await User.countWhere({
       subscription_plan: { $ne: "free" },
     });
 
@@ -18,30 +18,31 @@ exports.getDashboardStats = async (req, res) => {
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
 
-    const revenueAgg = await Generation.aggregate([
-      { $match: { createdAt: { $gte: startOfMonth } } },
-      { $group: { _id: null, total: { $sum: "$creditsUsed" } } },
-    ]);
-    const monthlyRevenue = revenueAgg.length
-      ? (revenueAgg[0].total * 0.02).toFixed(2)
-      : "0.00";
+    const totalCreditsUsed = await Generation.sumCreditsUsedSince(startOfMonth);
+    const monthlyRevenue = (totalCreditsUsed * 0.02).toFixed(2);
 
     /* ─── Growth percentages (this month vs last month) ─── */
     const startOfLastMonth = new Date(startOfMonth);
     startOfLastMonth.setMonth(startOfLastMonth.getMonth() - 1);
 
-    const usersThisMonth = await User.countDocuments({
-      createdAt: { $gte: startOfMonth },
+    const usersThisMonth = await User.countWhere({
+      created_at: { $gte: startOfMonth.toISOString() },
     });
-    const usersLastMonth = await User.countDocuments({
-      createdAt: { $gte: startOfLastMonth, $lt: startOfMonth },
+    const usersLastMonth = await User.countWhere({
+      created_at: {
+        $gte: startOfLastMonth.toISOString(),
+        $lt: startOfMonth.toISOString(),
+      },
     });
 
-    const gensThisMonth = await Generation.countDocuments({
-      createdAt: { $gte: startOfMonth },
+    const gensThisMonth = await Generation.countWhere({
+      created_at: { $gte: startOfMonth.toISOString() },
     });
-    const gensLastMonth = await Generation.countDocuments({
-      createdAt: { $gte: startOfLastMonth, $lt: startOfMonth },
+    const gensLastMonth = await Generation.countWhere({
+      created_at: {
+        $gte: startOfLastMonth.toISOString(),
+        $lt: startOfMonth.toISOString(),
+      },
     });
 
     const pct = (curr, prev) => {
@@ -51,31 +52,23 @@ exports.getDashboardStats = async (req, res) => {
 
     /* ─── Generation activity by hour (last 24h) for chart ─── */
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const hourlyActivity = await Generation.aggregate([
-      { $match: { createdAt: { $gte: oneDayAgo } } },
-      {
-        $group: {
-          _id: { $hour: "$createdAt" },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { _id: 1 } },
-    ]);
+    const recentGens = await Generation.findAllSince(oneDayAgo);
+
+    // Group by hour in JS
+    const hourlyMap = {};
+    for (const gen of recentGens) {
+      const hour = new Date(gen.created_at).getUTCHours();
+      hourlyMap[hour] = (hourlyMap[hour] || 0) + 1;
+    }
+    const hourlyActivity = Object.entries(hourlyMap)
+      .map(([hour, count]) => ({ _id: parseInt(hour), count }))
+      .sort((a, b) => a._id - b._id);
 
     /* ─── Recent users (last 10) ─── */
-    const recentUsers = await User.find()
-      .select("name email subscription_plan createdAt")
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .lean();
+    const recentUsers = await User.findRecent(10, "id, name, email, subscription_plan, created_at");
 
     /* ─── Recent generations (last 10) ─── */
-    const recentGenerations = await Generation.find()
-      .populate("userId", "name")
-      .select("type prompt fileUrl status createdAt")
-      .sort({ createdAt: -1 })
-      .limit(10)
-      .lean();
+    const recentGenerations = await Generation.findManyWithUser({ limit: 10 });
 
     res.json({
       stats: {

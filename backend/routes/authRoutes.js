@@ -11,7 +11,7 @@ router.post("/login", login);
 // PROTECTED ROUTE (GET CURRENT USER)
 router.get("/me", authMiddleware, async (req, res) => {
   try {
-    const user = await User.findById(req.userId).select("-password");
+    const user = await User.findByIdSelect(req.userId, "id, name, email, credits, subscription_plan, role, created_at, updated_at");
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }

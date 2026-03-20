@@ -7,6 +7,7 @@ const User = require("../models/User");
 
 const LEONARDO_API_KEY = process.env.LEONARDO_API_KEY;
 const LEONARDO_BASE_URL = "https://cloud.leonardo.ai/api/rest/v1";
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
 
 // Credit costs
 const IMAGE_CREDITS = 5;
@@ -141,16 +142,16 @@ exports.generateImage = async (req, res) => {
                 }
             );
 
-            const generationId = createResponse.data.sdGenerationJob?.generationId;
+            const leonardoGenId = createResponse.data.sdGenerationJob?.generationId;
 
-            if (!generationId) {
+            if (!leonardoGenId) {
                 throw new Error("Failed to start generation");
             }
 
-            console.log(`Generation started with ID: ${generationId}`);
+            console.log(`Generation started with ID: ${leonardoGenId}`);
 
             // Step 2: Poll for completion
-            const completedGeneration = await waitForGeneration(generationId);
+            const completedGeneration = await waitForGeneration(leonardoGenId);
 
             // Step 3: Get the generated image
             if (!completedGeneration.generated_images || completedGeneration.generated_images.length === 0) {
@@ -167,37 +168,38 @@ exports.generateImage = async (req, res) => {
             fs.writeFileSync(filePath, imageResponse.data);
 
             // Update generation record
-            generation.filePath = `uploads/gallery/images/${filename}`;
-            generation.fileUrl = `/uploads/gallery/images/${filename}`;
-            generation.status = "completed";
-            generation.savedToGallery = true;
-            await generation.save();
+            const updatedGen = await Generation.updateById(generation.id, {
+                filePath: `uploads/gallery/images/${filename}`,
+                fileUrl: `/uploads/gallery/images/${filename}`,
+                status: "completed",
+                savedToGallery: true,
+            });
 
             // Deduct credits
-            user.credits -= IMAGE_CREDITS;
-            await user.save();
+            await User.updateById(userId, { credits: user.credits - IMAGE_CREDITS });
 
             console.log(`Image generated successfully: ${filename}`);
 
             res.json({
                 message: "Image generated successfully",
                 generation: {
-                    id: generation._id,
-                    type: generation.type,
-                    prompt: generation.prompt,
-                    fileUrl: `http://localhost:5000${generation.fileUrl}`,
-                    status: generation.status,
-                    creditsUsed: generation.creditsUsed,
-                    createdAt: generation.createdAt,
+                    id: updatedGen.id,
+                    type: updatedGen.type,
+                    prompt: updatedGen.prompt,
+                    fileUrl: `${BACKEND_URL}${updatedGen.fileUrl}`,
+                    status: updatedGen.status,
+                    creditsUsed: updatedGen.creditsUsed,
+                    createdAt: updatedGen.createdAt,
                 },
-                remainingCredits: user.credits,
+                remainingCredits: user.credits - IMAGE_CREDITS,
             });
         } catch (apiError) {
             console.error("Leonardo API error:", apiError.response?.data || apiError.message);
             // Update generation as failed
-            generation.status = "failed";
-            generation.errorMessage = apiError.response?.data?.error || apiError.message;
-            await generation.save();
+            await Generation.updateById(generation.id, {
+                status: "failed",
+                errorMessage: apiError.response?.data?.error || apiError.message,
+            });
 
             throw apiError;
         }
@@ -289,31 +291,32 @@ exports.generateVideo = async (req, res) => {
             fs.writeFileSync(filePath, videoResponse.data);
 
             // Update generation record
-            generation.filePath = `uploads/gallery/videos/${filename}`;
-            generation.fileUrl = `/uploads/gallery/videos/${filename}`;
-            generation.status = "completed";
-            generation.savedToGallery = true;
-            await generation.save();
+            await Generation.updateById(generation.id, {
+                filePath: `uploads/gallery/videos/${filename}`,
+                fileUrl: `/uploads/gallery/videos/${filename}`,
+                status: "completed",
+                savedToGallery: true,
+            });
 
             // Deduct credits
-            user.credits -= VIDEO_CREDITS;
-            await user.save();
+            await User.updateById(userId, { credits: user.credits - VIDEO_CREDITS });
 
             console.log(`Video saved successfully: ${filename}`);
 
             res.json({
                 message: "Video generated successfully",
-                id: generation._id,
+                id: generation.id,
                 prompt: generation.prompt,
-                result_url: `http://localhost:5000${generation.fileUrl}`,
-                remainingCredits: user.credits,
+                result_url: `${BACKEND_URL}${generation.fileUrl || `/uploads/gallery/videos/${filename}`}`,
+                remainingCredits: user.credits - VIDEO_CREDITS,
             });
         } catch (apiError) {
             console.error("Bytez API error:", apiError.response?.data || apiError.message);
             // Update generation as failed
-            generation.status = "failed";
-            generation.errorMessage = apiError.response?.data?.error || apiError.message;
-            await generation.save();
+            await Generation.updateById(generation.id, {
+                status: "failed",
+                errorMessage: apiError.response?.data?.error || apiError.message,
+            });
 
             throw apiError;
         }
@@ -332,24 +335,29 @@ exports.getHistory = async (req, res) => {
         const userId = req.userId;
         const { type, status, limit = 20, page = 1 } = req.query;
 
-        const query = { userId };
-        if (type) query.type = type;
-        if (status) query.status = status;
+        const filter = { userId };
+        if (type) filter.type = type;
+        if (status) filter.status = status;
 
-        const generations = await Generation.find(query)
-            .sort({ createdAt: -1 })
-            .skip((page - 1) * limit)
-            .limit(parseInt(limit));
+        const parsedLimit = parseInt(limit);
+        const parsedPage = parseInt(page);
+        const offset = (parsedPage - 1) * parsedLimit;
 
-        const total = await Generation.countDocuments(query);
+        const generations = await Generation.findMany({
+            filter,
+            limit: parsedLimit,
+            offset,
+        });
+
+        const total = await Generation.countWhere(filter);
 
         res.json({
             generations,
             pagination: {
                 total,
-                page: parseInt(page),
-                limit: parseInt(limit),
-                pages: Math.ceil(total / limit),
+                page: parsedPage,
+                limit: parsedLimit,
+                pages: Math.ceil(total / parsedLimit),
             },
         });
     } catch (error) {
@@ -364,27 +372,32 @@ exports.getGallery = async (req, res) => {
         const userId = req.userId;
         const { type, limit = 20, page = 1 } = req.query;
 
-        const query = {
+        const filter = {
             userId,
             status: "completed",
             savedToGallery: true,
         };
-        if (type) query.type = type;
+        if (type) filter.type = type;
 
-        const items = await Generation.find(query)
-            .sort({ createdAt: -1 })
-            .skip((page - 1) * limit)
-            .limit(parseInt(limit))
-            .select("_id type prompt fileUrl createdAt");
+        const parsedLimit = parseInt(limit);
+        const parsedPage = parseInt(page);
+        const offset = (parsedPage - 1) * parsedLimit;
 
-        const total = await Generation.countDocuments(query);
+        const items = await Generation.findMany({
+            filter,
+            limit: parsedLimit,
+            offset,
+            select: "id, type, prompt, file_url, created_at",
+        });
+
+        const total = await Generation.countWhere(filter);
 
         // Map to frontend expected format
         const formattedItems = items.map(item => ({
-            id: item._id,
+            id: item.id,
             type: item.type,
             prompt: item.prompt,
-            result_url: `http://localhost:5000${item.fileUrl}`,
+            result_url: `${BACKEND_URL}${item.fileUrl}`,
             created_at: item.createdAt,
         }));
 
@@ -401,7 +414,7 @@ exports.deleteFromGallery = async (req, res) => {
         const userId = req.userId;
         const { id } = req.params;
 
-        const generation = await Generation.findOne({ _id: id, userId });
+        const generation = await Generation.findOne({ id, user_id: userId });
 
         if (!generation) {
             return res.status(404).json({ message: "Item not found" });
@@ -416,7 +429,7 @@ exports.deleteFromGallery = async (req, res) => {
         }
 
         // Delete the database record
-        await Generation.deleteOne({ _id: id });
+        await Generation.deleteById(id);
 
         res.json({ message: "Item deleted successfully" });
     } catch (error) {

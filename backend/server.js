@@ -1,13 +1,12 @@
 require("dotenv").config({ override: true });
 const express = require("express");
 const cors = require("cors");
-const connectDB = require("./config/db");
+const { testConnection } = require("./config/db");
 
 
 const app = express();
 
-console.log("url in env : ", process.env.MONGO_URL)
-connectDB();
+testConnection();
 
 app.use(cors());
 app.use(express.json());
