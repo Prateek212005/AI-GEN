@@ -1,32 +1,45 @@
 const axios = require("axios");
-const fs = require("fs");
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const Generation = require("../models/Generation");
 const User = require("../models/User");
+const { supabase } = require("../config/db");
 
 const LEONARDO_API_KEY = process.env.LEONARDO_API_KEY;
 const LEONARDO_BASE_URL = "https://cloud.leonardo.ai/api/rest/v1";
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:5000";
+const SUPABASE_URL = process.env.SUPABASE_URL;
 
 // Credit costs
 const IMAGE_CREDITS = 5;
 const VIDEO_CREDITS = 10;
 
-// Ensure gallery directories exist
-const ensureDirectories = () => {
-    const imageDir = path.join(__dirname, "../uploads/gallery/images");
-    const videoDir = path.join(__dirname, "../uploads/gallery/videos");
+// Helper: upload buffer to Supabase Storage and return public URL
+const uploadToSupabase = async (buffer, filename, contentType) => {
+    const { data, error } = await supabase.storage
+        .from("generations")
+        .upload(filename, buffer, {
+            contentType,
+            upsert: true,
+        });
 
-    if (!fs.existsSync(imageDir)) {
-        fs.mkdirSync(imageDir, { recursive: true });
-    }
-    if (!fs.existsSync(videoDir)) {
-        fs.mkdirSync(videoDir, { recursive: true });
-    }
+    if (error) throw new Error(`Supabase upload failed: ${error.message}`);
+
+    // Get public URL
+    const { data: urlData } = supabase.storage
+        .from("generations")
+        .getPublicUrl(filename);
+
+    return urlData.publicUrl;
 };
 
-ensureDirectories();
+// Helper: delete file from Supabase Storage
+const deleteFromSupabase = async (filePath) => {
+    if (!filePath) return;
+    const { error } = await supabase.storage
+        .from("generations")
+        .remove([filePath]);
+    if (error) console.error("Supabase delete error:", error.message);
+};
 
 // Helper function to wait for generation to complete
 const waitForGeneration = async (generationId) => {
@@ -128,7 +141,7 @@ exports.generateImage = async (req, res) => {
                 `${LEONARDO_BASE_URL}/generations`,
                 {
                     prompt: enhancedPrompt,
-                    modelId: "6b645e3a-d64f-4341-a6d8-7a3690fbf042", // Leonardo Creative model
+                    modelId: "6b645e3a-d64f-4341-a6d8-7a3690fbf042",
                     width: dimensions.width,
                     height: dimensions.height,
                     num_images: 1,
@@ -160,17 +173,21 @@ exports.generateImage = async (req, res) => {
 
             const imageUrl = completedGeneration.generated_images[0].url;
 
-            // Step 4: Download and save the image
+            // Step 4: Download the image
             const imageResponse = await axios.get(imageUrl, { responseType: "arraybuffer" });
 
-            const filename = `${uuidv4()}.png`;
-            const filePath = path.join(__dirname, "../uploads/gallery/images", filename);
-            fs.writeFileSync(filePath, imageResponse.data);
+            // Step 5: Upload to Supabase Storage
+            const filename = `images/${uuidv4()}.png`;
+            const publicUrl = await uploadToSupabase(
+                Buffer.from(imageResponse.data),
+                filename,
+                "image/png"
+            );
 
             // Update generation record
             const updatedGen = await Generation.updateById(generation.id, {
-                filePath: `uploads/gallery/images/${filename}`,
-                fileUrl: `/uploads/gallery/images/${filename}`,
+                filePath: filename,
+                fileUrl: publicUrl,
                 status: "completed",
                 savedToGallery: true,
             });
@@ -178,7 +195,7 @@ exports.generateImage = async (req, res) => {
             // Deduct credits
             await User.updateById(userId, { credits: user.credits - IMAGE_CREDITS });
 
-            console.log(`Image generated successfully: ${filename}`);
+            console.log(`Image generated and uploaded: ${filename}`);
 
             res.json({
                 message: "Image generated successfully",
@@ -186,7 +203,7 @@ exports.generateImage = async (req, res) => {
                     id: updatedGen.id,
                     type: updatedGen.type,
                     prompt: updatedGen.prompt,
-                    fileUrl: `${BACKEND_URL}${updatedGen.fileUrl}`,
+                    fileUrl: publicUrl,
                     status: updatedGen.status,
                     creditsUsed: updatedGen.creditsUsed,
                     createdAt: updatedGen.createdAt,
@@ -195,12 +212,10 @@ exports.generateImage = async (req, res) => {
             });
         } catch (apiError) {
             console.error("Leonardo API error:", apiError.response?.data || apiError.message);
-            // Update generation as failed
             await Generation.updateById(generation.id, {
                 status: "failed",
                 errorMessage: apiError.response?.data?.error || apiError.message,
             });
-
             throw apiError;
         }
     } catch (error) {
@@ -264,7 +279,7 @@ exports.generateVideo = async (req, res) => {
                         Authorization: BYTEZ_API_KEY,
                         "Content-Type": "application/json",
                     },
-                    timeout: 300000, // 5 minute timeout for video generation
+                    timeout: 300000,
                 }
             );
 
@@ -280,20 +295,24 @@ exports.generateVideo = async (req, res) => {
 
             console.log(`Video generated: ${videoUrl}`);
 
-            // Download and save the video
+            // Download the video
             const videoResponse = await axios.get(videoUrl, {
                 responseType: "arraybuffer",
                 timeout: 120000,
             });
 
-            const filename = `${uuidv4()}.mp4`;
-            const filePath = path.join(__dirname, "../uploads/gallery/videos", filename);
-            fs.writeFileSync(filePath, videoResponse.data);
+            // Upload to Supabase Storage
+            const filename = `videos/${uuidv4()}.mp4`;
+            const publicUrl = await uploadToSupabase(
+                Buffer.from(videoResponse.data),
+                filename,
+                "video/mp4"
+            );
 
             // Update generation record
             await Generation.updateById(generation.id, {
-                filePath: `uploads/gallery/videos/${filename}`,
-                fileUrl: `/uploads/gallery/videos/${filename}`,
+                filePath: filename,
+                fileUrl: publicUrl,
                 status: "completed",
                 savedToGallery: true,
             });
@@ -301,23 +320,21 @@ exports.generateVideo = async (req, res) => {
             // Deduct credits
             await User.updateById(userId, { credits: user.credits - VIDEO_CREDITS });
 
-            console.log(`Video saved successfully: ${filename}`);
+            console.log(`Video saved to Supabase Storage: ${filename}`);
 
             res.json({
                 message: "Video generated successfully",
                 id: generation.id,
                 prompt: generation.prompt,
-                result_url: `${BACKEND_URL}${generation.fileUrl || `/uploads/gallery/videos/${filename}`}`,
+                result_url: publicUrl,
                 remainingCredits: user.credits - VIDEO_CREDITS,
             });
         } catch (apiError) {
             console.error("Bytez API error:", apiError.response?.data || apiError.message);
-            // Update generation as failed
             await Generation.updateById(generation.id, {
                 status: "failed",
                 errorMessage: apiError.response?.data?.error || apiError.message,
             });
-
             throw apiError;
         }
     } catch (error) {
@@ -390,14 +407,12 @@ exports.getGallery = async (req, res) => {
             select: "id, type, prompt, file_url, created_at",
         });
 
-        const total = await Generation.countWhere(filter);
-
-        // Map to frontend expected format
+        // fileUrl is now a full public URL from Supabase Storage
         const formattedItems = items.map(item => ({
             id: item.id,
             type: item.type,
             prompt: item.prompt,
-            result_url: `${BACKEND_URL}${item.fileUrl}`,
+            result_url: item.fileUrl,
             created_at: item.createdAt,
         }));
 
@@ -420,12 +435,9 @@ exports.deleteFromGallery = async (req, res) => {
             return res.status(404).json({ message: "Item not found" });
         }
 
-        // Delete the file if it exists
+        // Delete the file from Supabase Storage
         if (generation.filePath) {
-            const fullPath = path.join(__dirname, "..", generation.filePath);
-            if (fs.existsSync(fullPath)) {
-                fs.unlinkSync(fullPath);
-            }
+            await deleteFromSupabase(generation.filePath);
         }
 
         // Delete the database record
