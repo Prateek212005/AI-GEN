@@ -141,7 +141,6 @@ const GpuChart = ({ hourlyActivity }) => {
 
       // Fill
       const lastX = padL + step * (arr.length - 1);
-      const lastY = padT + chartH - (arr[arr.length - 1] / max) * chartH;
       ctx.lineTo(lastX, padT + chartH);
       ctx.lineTo(padL, padT + chartH);
       ctx.closePath();

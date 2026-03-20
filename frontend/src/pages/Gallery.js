@@ -9,19 +9,6 @@ const Gallery = () => {
   const [loading, setLoading] = useState(true);
   const [selectedItem, setSelectedItem] = useState(null);
 
-  const fetchGallery = async () => {
-    setLoading(true);
-    try {
-      const filterType = filter === 'all' ? null : filter;
-      const data = await getGallery(filterType);
-      setGenerations(data);
-    } catch (error) {
-      toast.error('Failed to load gallery');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
     const loadGallery = async () => {
       setLoading(true);
