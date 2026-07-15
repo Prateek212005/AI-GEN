@@ -23,7 +23,14 @@ const Login = () => {
       await login(email, password);
       navigate("/generate");
     } catch (error) {
-      setError("Wrong password or email");
+      const msg = error?.response?.data?.message || error?.message || "";
+      if (msg.includes("waking up") || msg.includes("timeout") || error?.code === "ECONNABORTED") {
+        setError("Server is waking up — please wait a moment and try again");
+      } else if (msg.includes("Network Error")) {
+        setError("Cannot reach server — please check your connection");
+      } else {
+        setError("Wrong password or email");
+      }
     } finally {
       setLoading(false);
     }

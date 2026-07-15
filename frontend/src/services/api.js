@@ -2,6 +2,7 @@ import axios from "axios";
 
 const API = axios.create({
   baseURL: `${process.env.REACT_APP_BACKEND_URL}/api`,
+  timeout: 30000, // 30 second timeout (handles Render cold starts)
 });
 
 // Attach token to every request
@@ -12,6 +13,17 @@ API.interceptors.request.use((config) => {
   }
   return config;
 });
+
+// Handle timeout errors with a friendly message
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
+      error.message = "Server is waking up, please try again in a few seconds.";
+    }
+    return Promise.reject(error);
+  }
+);
 
 /* =========================
    Gallery APIs

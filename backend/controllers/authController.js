@@ -20,7 +20,8 @@ exports.signup = async (req, res) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Salt rounds reduced to 8 for faster hashing on free-tier servers (still secure)
+    const hashedPassword = await bcrypt.hash(password, 8);
 
     const user = await User.create({
       name,

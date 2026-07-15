@@ -21,7 +21,14 @@ const Signup = () => {
       await signup(email, name, password);
       navigate("/generate");
     } catch (error) {
-      alert("Signup failed");
+      const msg = error?.response?.data?.message || error?.message || "";
+      if (msg.includes("waking up") || msg.includes("timeout") || error?.code === "ECONNABORTED") {
+        alert("Server is waking up — please wait a moment and try again");
+      } else if (msg.includes("Network Error")) {
+        alert("Cannot reach server — please check your connection");
+      } else {
+        alert(error?.response?.data?.message || "Signup failed");
+      }
     } finally {
       setLoading(false);
     }
